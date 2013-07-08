@@ -8,6 +8,7 @@ import processing.serial.*;
 
 import java.util.HashMap; 
 import java.util.ArrayList; 
+import java.io.File; 
 import java.io.BufferedReader; 
 import java.io.PrintWriter; 
 import java.io.InputStream; 
@@ -61,7 +62,7 @@ public class dynaManager extends PApplet {
 
  //Import the P5 Library for GUI interface elements (drop list, button)
  //import serial library to communicate with the ArbotiX
-PrintWriter output;
+
 
 Serial sPort;            //serial object 
 ControlP5 cp5;           // p5 control object
@@ -108,13 +109,6 @@ int[] twelveBitDyna = {29, 310, 320, 107};
 
 public void setup() 
 {
-    output = createWriter("positions.txt"); 
-
-    output.println("Test");  // Write the coordinate to the file
-
-  output.flush();  // Writes the remaining data to the file
-  output.close();  // Finishes the file
-  
   size(220, 443);//size of application working area
   img = loadImage("TRheaderLogo.png");  // Load the TR logo
   cp5 = new ControlP5(this);//intiaite controlp5 object   
