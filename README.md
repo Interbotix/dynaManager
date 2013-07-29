@@ -6,6 +6,9 @@ Processing/Java application to set ID/Baud of DYNAMIXEL servos for InterbotiX Ro
 This application can be built with Processing 2.0
 https://processing.org/download/
 
+This application relies on the controlP5 library
+http://www.sojamo.de/libraries/controlP5/
+
 The dynaManager is a small application that will set the ID and Baud of various DYNAMIXEL servos. To do this, it requires an ArbotiX robocontroller
 http://www.trossenrobotics.com/p/arbotix-robot-controller.aspx
 running the ROS sketch. 
