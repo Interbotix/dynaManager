@@ -73,7 +73,7 @@ int positionMargin = 40;
 int cnt = 0;                  //count for listbox items
 int selectedPort;             //currently selected port from serialList drop down
 int baudToSet = 1;            //set to 34 for 57600 baud 
-int debug = 0;                //change to '0' to disable bedbugginf messages from the console, '1' to enable TODO:log debugging to a file, add option to enable debugging
+int debug = 1;                //change to '0' to disable bedbugginf messages from the console, '1' to enable TODO:log debugging to a file, add option to enable debugging
 int running = 0;              //enabled on draw(), used to avoid controlp5 from running functions immidealty on startup
 int servoScanned = 0;         //0 = no servo attached, 300 = 300 degree/10bit capable servo connected, 360 = 360degree/12 bit capable servo connected
 int knobClickState = 0;       //0 = no knob interaction ,1 = knob has been clicked on and is being held 
@@ -104,7 +104,7 @@ void setup()
                 .disableCollapse()
                 .bringToFront()
                 .setCaptionLabel("Scan Options")
-                .setVisible(false)
+                .setVisible(true)
                 .hideBar()
                 ;  
   setGroup = cp5.addGroup("setGroup")
@@ -115,7 +115,7 @@ void setup()
                 .disableCollapse()
                 .bringToFront()
                 .setCaptionLabel("Set Servo ID")
-                .setVisible(false)
+                .setVisible(true)
                 ;    
   testGroup = cp5.addGroup("testGroup")
                 .setPosition(10,290)
@@ -2073,8 +2073,8 @@ int setArbotixBaud(int baud)
 int pingArbotix()
 {
 
- 
-  byte[] parameters = {byte(3), 1};//id is at register 4, length 1 
+ return(1);
+/*  byte[] parameters = {byte(3), 1};//id is at register 4, length 1 
   byte id = byte(0xfd);//253 = id to set Arbotix parameters
   byte[] response = new byte[6];
   
@@ -2091,7 +2091,7 @@ int pingArbotix()
    {
     return(0);
    }
-  
+*/  
  
   /*
   if(checkId(253) == 253)
