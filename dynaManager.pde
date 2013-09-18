@@ -87,7 +87,7 @@ PImage img;                   //image object for TR logo
 int[] tenBitDyna = {12, 18, 300, 24, 28, 64};
 //model numbers for 12-bit goal position dynamixels, in int(MX-28, MX-64, MX-106, EX-106)
 int[] twelveBitDyna = {29, 310, 320, 107};
-
+int packetRepsonseTimeout = 6500;
 void setup() 
 {
   size(220, 443);//size of application working area
@@ -1493,6 +1493,9 @@ byte[] readDynaPacket(int numberOfRegisters)
   byte[] responseBytes = new byte[6+numberOfRegisters];// array to hold all members of the serial response.
   //int returnedBytes = 0; //actual number of returned bytes
   delayMs(100);//wait a period to ensure that the controller has responded 
+
+  
+  
   byte inByte = 0;
   
   if(debug==1){print("    Incoming Raw Packet from readDynaPacket():");}
@@ -2077,20 +2080,29 @@ int pingArbotix()
   byte[] parameters = {byte(3), 1};//id is at register 4, length 1 
   byte id = byte(0xfd);//253 = id to set Arbotix parameters
   byte[] response = new byte[6];
-  
-  sendDynaPacket(id, byte(2), parameters); //send a dynamixel packet to the id# servoid with parameters. '2' is the 'READ' instruction
-  response = readDynaPacket(0);//get response to see if arbotix is present
-  
-  //check headers
-  if(response[0] == byte(255) && response[1] == byte(255) && response[2] == byte(253) && response[3] == byte(3) && response[4] == byte(0) && response[5] == byte(253))
+
+  long startReadingTime = millis();//time that the program started looking for data
+
+ // long startReadingTime = millis();//time that the program started looking for data
+
+  while(sPort.available() < 5  & millis()-startReadingTime < packetRepsonseTimeout)
   {
-    return(1);
+      sendDynaPacket(id, byte(2), parameters); //send a dynamixel packet to the id# servoid with parameters. '2' is the 'READ' instruction
+      response = readDynaPacket(0);//get response to see if arbotix is present
+        //check headers
+      if(response[0] == byte(255) && response[1] == byte(255) && response[2] == byte(253) && response[3] == byte(3) && response[4] == byte(0) && response[5] == byte(253))
+      {
+        return(1);
+      }
+       
+       else 
+       {
+        
+       }
+  
   }
-   
-   else 
-   {
-    return(0);
-   }
+return(0);
+
   
  
   /*
