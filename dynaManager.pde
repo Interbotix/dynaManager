@@ -20,7 +20,7 @@
 * AX-18A
 * MX-28T
 * MX-64T
-* MX-106T
+* MX-106T11
 *
 * The Following servos should work, using an RX bridge, but have not been tested
 *  RX-24F
@@ -73,7 +73,7 @@ int positionMargin = 40;
 int cnt = 0;                  //count for listbox items
 int selectedPort;             //currently selected port from serialList drop down
 int baudToSet = 1;            //set to 34 for 57600 baud 
-int debug = 0;                //change to '0' to disable bedbugginf messages from the console, '1' to enable TODO:log debugging to a file, add option to enable debugging
+int debug = 1;                //change to '0' to disable bedbugginf messages from the console, '1' to enable TODO:log debugging to a file, add option to enable debugging
 int running = 0;              //enabled on draw(), used to avoid controlp5 from running functions immidealty on startup
 int servoScanned = 0;         //0 = no servo attached, 300 = 300 degree/10bit capable servo connected, 360 = 360degree/12 bit capable servo connected
 int knobClickState = 0;       //0 = no knob interaction ,1 = knob has been clicked on and is being held 
@@ -518,7 +518,7 @@ public void connectSerial(int theValue)
     //try to connect to the port at 115200bps, otherwise show an error message
     try
     {
-      sPort = new Serial(this, Serial.list()[serialPortIndex], 115200);
+      sPort = new Serial(this, Serial.list()[serialPortIndex], 1000000);
     }
     catch(Exception e)
     {
@@ -549,6 +549,29 @@ public void connectSerial(int theValue)
       disconnectButton.unlock();
       disconnectButton.setColorBackground(color(2,52,77));
     }
+    else if(pingArbotixPro() == 1)
+    {
+      arbotixProPowerServos();//turn power on to arbotiX pro servo chain
+      
+      //show scan and test group
+      scanGroup.setVisible(true);
+      testGroup.setVisible(true);
+      
+      //hide error groups
+      startupGroup.setVisible(false);
+      errorGroup.setVisible(false);
+      
+      //lock connect button and change apperance, unlock disconnect button and change apperance
+      connectButton.lock();
+      connectButton.setColorBackground(color(200));
+      autoSearchButton.lock();
+      autoSearchButton.setColorBackground(color(200));
+      disconnectButton.unlock();
+      disconnectButton.setColorBackground(color(2,52,77));
+      
+    }
+    
+    
     else
     {
       if(debug ==1){println("ArbotiX Not detected");}
@@ -2120,6 +2143,75 @@ return(0);
   /*
   
   */
+  
+  
+}
+
+
+int pingArbotixPro()
+{
+
+ 
+  byte[] parameters = {byte(3), 1};//id is at register 3, length 1 
+  byte id = byte(0xc8);//200 = arbotix Pro ID
+  byte[] response = new byte[6];
+
+  long startReadingTime = millis();//time that the program started looking for data
+
+ // long startReadingTime = millis();//time that the program started looking for data
+
+  while(sPort.available() < 5  & millis()-startReadingTime < packetRepsonseTimeout)
+  {
+      sendDynaPacket(id, byte(2), parameters); //send a dynamixel packet to the id# servoid with parameters. '2' is the 'READ' instruction
+      response = readDynaPacket(0);//get response to see if arbotix is present
+        //check headers
+      if(response[0] == byte(255) && response[1] == byte(255) && response[2] == id && response[3] == byte(3) && response[4] == byte(0) && response[5] == id)
+      {
+        
+        return(1);
+      }
+       
+       else 
+       {
+        
+       }
+  
+  }
+return(0);
+
+  
+ 
+  /*
+  if(checkId(253) == 253)
+  {
+    println("heartbeat good");
+   return(1);
+  }
+  else
+  {
+    println("heartbeat bad");
+ 
+   return(0); 
+  }*/
+  /*
+  
+  */
+  
+  
+}
+
+
+int arbotixProPowerServos()
+{
+
+ 
+  byte[] parameters = {byte(0x18), 1};//power is at register 0x18/24, 1 to turn it on
+  byte id = byte(0xc8);//200 = arbotix Pro ID
+
+
+  
+  return(writeDynaReg(id, parameters));
+  
   
   
 }
