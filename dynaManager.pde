@@ -54,6 +54,9 @@ Group testGroup;         //group for DYNAMIXEL testing widgets
 Group startupGroup;      //group for startup message
 Group errorGroup;        //group for error messages
 Textfield curIdField;         //current servo ID from sanner, non user editable
+
+
+                  
 Textfield NameField; //current servo model name, non user editable
 Textfield newIdField;         //new ID to set the servo to, user editable
 Textfield presentPositionField;//present position of servo, in interger form
@@ -68,11 +71,12 @@ Button disconnectButton;
 Button autoSearchButton;
 int curIdMargin = 45;
 int modelMargin = 36;
-int newIdMargin = 30;
+int newIdMargin = 0;
 int positionMargin = 40;
 int cnt = 0;                  //count for listbox items
 int selectedPort;             //currently selected port from serialList drop down
 int baudToSet = 1;            //set to 34 for 57600 baud 
+int debug1 = 1;
 int debug = 0;                //change to '0' to disable bedbugginf messages from the console, '1' to enable TODO:log debugging to a file, add option to enable debugging
 int running = 0;              //enabled on draw(), used to avoid controlp5 from running functions immidealty on startup
 int servoScanned = 0;         //0 = no servo attached, 300 = 300 degree/10bit capable servo connected, 360 = 360degree/12 bit capable servo connected
@@ -88,6 +92,7 @@ int[] tenBitDyna = {12, 18, 300, 24, 28, 64};
 //model numbers for 12-bit goal position dynamixels, in int(MX-28, MX-64, MX-106, EX-106)
 int[] twelveBitDyna = {29, 310, 320, 107};
 int packetRepsonseTimeout = 6500;
+int lastPositionTime ;
 void setup() 
 {
   size(220, 443);//size of application working area
@@ -357,8 +362,78 @@ void setup()
     //}
   }
   
+    curIdField.setValue("No Servo Connected");//change current id field to a prompt
 
 }//END SETUP
+
+
+
+/*****************************************************END P5 CONTROLLER FUNCTIONS****************************/
+
+/************************************
+ * draw
+ *
+ * the draw()loop runs continously. Most of this program's 
+ * functionality is taken care of by P5 control events, but
+ * the draw loop will check on the heatbeat signals -
+ * persistend connections to the arbotix and connected servos
+ *  
+ ************************************/  
+void draw() 
+{
+  int curServoId = 0;//id of the current servo
+  running = 1;//set to run mode, so that P5 control functions can begein working
+  background(128);    //set the background color
+  image(img, 0, 400, 220,43);//place the TR logo
+   
+  //check for hearbeat signal every 100ms. If it's been more than 100ms and the serial port is active, proceed
+  if((millis()- time > 100) && sPort != null)
+  {
+    if(servoScanned != 0)//if a servoscanne is nonzero, then a servo has been connected. 
+    {
+      try
+      {
+        curServoId = Integer.parseInt(curIdField.getText());
+      }
+      catch(Exception e)
+      {
+        if(debug ==1){println("Error converting string to int");}
+      }
+     
+      //servoHeartbeat(curServoId);   //run a heartbea check to see id the servo is still connected        
+    }
+   //arbotixHeartbeat();  //run a heartbeat check to see if the arbotix is still connected
+   time = millis(); //update the time
+  }
+  
+  //if an outside event or servoHeartbeat has set servoscanned to zero, remove the applicable GUI groups
+  if(servoScanned ==0)
+  {
+     testGroup.setVisible(false);
+     setGroup.setVisible(false);
+  }
+  //otherwise make sure the groups are visible
+  else
+  {
+     testGroup.setVisible(true);
+     setGroup.setVisible(true);
+
+  }
+
+
+
+
+
+  // scroll the scroll List according to the mouseX position
+  // when holding down SPACE.
+  if (keyPressed && key==' ') {
+    //l.scroll(mouseX/((float)width)); // scroll taks values between 0 and 1
+  }
+  if (keyPressed && key==' ') {
+    //l.setWidth(mouseX);
+  }
+}//end draw()
+
 
 /*****************************************************START P5 CONTROLLER FUNCTIONS****************************/
 
@@ -714,10 +789,75 @@ public void scanDynaButton(int theValue)
   int servoId =0;    //id of the first servo found
   String tempId;     //string ID value, to write back to the current id text field
   int i =0;          //counter
+  servoScanned = 0;
   //check that we're connected and in run mode
   if(sPort != null && running == 1)
   {          
+    
+    
     setArbotixBaud(1000000);  //set the Arbotix's DYNAMIXEL bus to 1000000
+    curIdField.setColorBackground(color(2,52,77));
+            
+            
+            if(debug1 ==1){println("Scan ID 1 @ 1MBPS" );}
+                  
+    while (servoScanned == 0 && i <6)
+  {
+      if(checkId(1) == 1)//send read command for id, if the same id is returned, then we have found a servo
+      {        
+        dynaModelNameField.setValue(getDynaModelName(i));  //get the connected DYNAMIXEL's model name and set it to the name text field
+        dynaModelNameField.valueLabel().style().marginLeft = modelMargin;
+        tempId = ""+i; //prepare the id as a string
+        curIdField.setValue(tempId);//write the id as a string back to the text field
+        curIdField.valueLabel().style().marginLeft = curIdMargin;
+        setScannedServo(i);         //set global varaibles for the servo being scanned
+        if(debug ==1){println("Servo Scan complete, servo "+ i + " found at 1000000" );}
+      }
+    
+    
+    
+      i++;
+  }  
+  
+    i = 0;//reset counter
+    
+            if(debug1 ==1){println("Scan ID 1 @ 57600" );}
+    if( servoScanned ==0)//if we still haven't found a servo, change the baud
+    {
+    setArbotixBaud(57600);  //set the Arbotix's DYNAMIXEL bus to 1000000
+    
+                    //curIdField.setColor(color(10));
+                  curIdField.setColorBackground(color(255,204,0));
+    }
+    
+    while (servoScanned == 0 && i <6)
+  {
+      if(checkId(1) == 1)//send read command for id, if the same id is returned, then we have found a servo
+      {        
+        dynaModelNameField.setValue(getDynaModelName(i));  //get the connected DYNAMIXEL's model name and set it to the name text field
+        dynaModelNameField.valueLabel().style().marginLeft = modelMargin;
+        tempId = ""+i; //prepare the id as a string
+        curIdField.setValue(tempId);//write the id as a string back to the text field
+        curIdField.valueLabel().style().marginLeft = curIdMargin;
+        setScannedServo(i);         //set global varaibles for the servo being scanned
+        if(debug ==1){println("Servo Scan complete, servo "+ i + " found at 1000000" );}
+      }
+    
+    
+    
+      i++;
+  }  
+    
+    
+    i = 0;//reset counter
+    
+            if(debug1 ==1){println("Scan ID  @ 1MBPS" );}
+    if( servoScanned ==0)//if we still haven't found a servo, change the baud
+    {
+    setArbotixBaud(1000000);  //set the Arbotix's DYNAMIXEL bus to 1000000
+    curIdField.setColorBackground(color(2,52,77));
+    }
+    
     while(servoScanned == 0 && i<30)  //scan servos 0-29
     {
       if(checkId(i) == i)//send read command for id, if the same id is returned, then we have found a servo
@@ -729,10 +869,14 @@ public void scanDynaButton(int theValue)
         curIdField.valueLabel().style().marginLeft = curIdMargin;
         setScannedServo(i);         //set global varaibles for the servo being scanned
         if(debug ==1){println("Servo Scan complete, servo "+ i + " found at 1000000" );}
+        
+       // curIdField.setValue("Scanning..." + i);
+    
       }
       i++;
     }
 
+            if(debug1 ==1){println("Scan ID  @ 57600" );}
     i = 0;//reset counter
     
     if( servoScanned ==0)//if we still haven't found a servo, change the baud
@@ -758,9 +902,11 @@ public void scanDynaButton(int theValue)
     i = 30;
     if( servoScanned ==0)//if we still haven't found a servo, change baud back to 1000000
     {
-      setArbotixBaud(1000000);
+    setArbotixBaud(1000000);  //set the Arbotix's DYNAMIXEL bus to 1000000
+    curIdField.setColorBackground(color(2,52,77));
     }
     
+            if(debug1 ==1){println("Scan ID up @ 1MBPS" );}
     while(servoScanned == 0 && i<253)
     {
       if(checkId(i) == i)//send read command for id, if the same id is returned, then we have found a servo
@@ -776,6 +922,9 @@ public void scanDynaButton(int theValue)
     }
     
       i = 30;
+      
+            if(debug1 ==1){println("Scan ID up @ 57600" );}
+            
     if( servoScanned ==0)//if we still haven't found a servo, change baud back to 57600
     {
     
@@ -822,71 +971,6 @@ void customize(DropdownList ddl) {
   ddl.setColorBackground(color(60));
   ddl.setColorActive(color(255, 128));
 }
-/*****************************************************END P5 CONTROLLER FUNCTIONS****************************/
-
-/************************************
- * draw
- *
- * the draw()loop runs continously. Most of this program's 
- * functionality is taken care of by P5 control events, but
- * the draw loop will check on the heatbeat signals -
- * persistend connections to the arbotix and connected servos
- *  
- ************************************/  
-void draw() 
-{
-  int curServoId = 0;//id of the current servo
-  running = 1;//set to run mode, so that P5 control functions can begein working
-  background(128);    //set the background color
-  image(img, 0, 400, 220,43);//place the TR logo
-   
-  //check for hearbeat signal every 100ms. If it's been more than 100ms and the serial port is active, proceed
-  if((millis()- time > 100) && sPort != null)
-  {
-    if(servoScanned != 0)//if a servoscanne is nonzero, then a servo has been connected. 
-    {
-      try
-      {
-        curServoId = Integer.parseInt(curIdField.getText());
-      }
-      catch(Exception e)
-      {
-        if(debug ==1){println("Error converting string to int");}
-      }
-     
-      servoHeartbeat(curServoId);   //run a heartbea check to see id the servo is still connected        
-    }
-   //arbotixHeartbeat();  //run a heartbeat check to see if the arbotix is still connected
-   time = millis(); //update the time
-  }
-  
-  //if an outside event or servoHeartbeat has set servoscanned to zero, remove the applicable GUI groups
-  if(servoScanned ==0)
-  {
-     testGroup.setVisible(false);
-     setGroup.setVisible(false);
-  }
-  //otherwise make sure the groups are visible
-  else
-  {
-     testGroup.setVisible(true);
-     setGroup.setVisible(true);
-
-  }
-
-
-
-
-
-  // scroll the scroll List according to the mouseX position
-  // when holding down SPACE.
-  if (keyPressed && key==' ') {
-    //l.scroll(mouseX/((float)width)); // scroll taks values between 0 and 1
-  }
-  if (keyPressed && key==' ') {
-    //l.setWidth(mouseX);
-  }
-}//end draw()
 
 /************************************
  * stop
@@ -946,7 +1030,7 @@ void mouseClicked()
 void mousePressed()
 {
   //if((mouseX >= scanDynaButton.getAbsolutePosition().x) && (mouseX <= scanDynaButton.getWidth()+scanDynaButton.getAbsolutePosition().x) && (mouseY >= scanDynaButton.getAbsolutePosition().x) && (mouseY <= scanDynaButton.getHeight()+scanDynaButton.getAbsolutePosition().x) == true)//position of scan button
-  if((mouseX >= 20) && (mouseX <= 91) && (mouseY >= 61) && (mouseY <= 131) == true)//position of scan button
+  if((mouseX >= 20) && (mouseX <= 91) && (mouseY >= 61) && (mouseY <= 131) &&  scanGroup.isVisible() == true)//position of scan button
   {
     dynaModelNameField.setValue("");
     curIdField.setValue("Scanning...");
@@ -1105,7 +1189,17 @@ class knobCanvas extends Canvas
         //get postional data
         try
         {
-           servoPosition = getPosition(curServoId);
+          if(millis() - lastPositionTime > 100)
+          {
+            lastPositionTime = millis();
+            int tempPos = getPosition(curServoId);
+            //println(tempPos);
+            if(tempPos != -1)
+            {
+               servoPosition = tempPos;//getPosition(curServoId);
+            }
+            
+          }
         }
         catch(Exception e)
         {
@@ -1900,6 +1994,7 @@ int getPosition(int servoId)
   int positionInt=0;
   positionByte=readDynaReg(servoId, parameters);
 
+
   if(positionByte != null)
   {
     positionInt = bytesToInt(positionByte);
@@ -1909,6 +2004,7 @@ int getPosition(int servoId)
   else
   {
      //return(256);//reutrn 256 to represent no ID found, as a servo can never have id=256 
+     return(-1);
   }
   return(positionInt);
 }
